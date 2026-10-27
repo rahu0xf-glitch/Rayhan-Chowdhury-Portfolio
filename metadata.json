@@ -1,0 +1,8 @@
+{
+  "name": "Remix Sayed Hasan Liquid Portfolio",
+  "description": "A premium, futuristic personal website featuring immersive glassmorphism, fluid interactive elements, and an elegant, high-end design aesthetic.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
