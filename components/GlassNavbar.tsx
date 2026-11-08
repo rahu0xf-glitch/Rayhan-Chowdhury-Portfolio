@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 
 const NAV_LINKS = [
   { id: 'home', label: 'Home', href: '#home' },
@@ -12,7 +12,15 @@ const NAV_LINKS = [
   { id: 'contact', label: 'Contact', href: '#contact' },
 ];
 
-export default function GlassNavbar() {
+interface GlassNavbarProps {
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
+}
+
+export default function GlassNavbar({
+  isDarkMode = false,
+  onToggleDarkMode,
+}: GlassNavbarProps) {
   const [activeSection, setActiveSection] = useState<string>('home');
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -80,11 +88,11 @@ export default function GlassNavbar() {
   return (
     <header className="fixed inset-x-0 top-3 sm:top-4 z-50 px-4 sm:px-6 lg:px-10 pointer-events-none">
       <div
-        className={`mx-auto flex h-12 sm:h-[52px] max-w-6xl items-center justify-between gap-8 rounded-full px-5 sm:px-6 pointer-events-auto transition-all duration-300 ${
+        className={`mx-auto flex h-12 sm:h-[52px] max-w-6xl items-center justify-between gap-4 sm:gap-8 rounded-full px-4 sm:px-6 pointer-events-auto transition-all duration-300 ${
           isScrolled ? 'liquid-glass-nav-scrolled' : 'liquid-glass-nav'
         }`}
       >
-        {/* Zone 1: Brand Monogram (Single Element) */}
+        {/* Zone 1: Brand Monogram */}
         <a
           href="#home"
           onClick={(e) => scrollToSection(e, 'home')}
@@ -94,7 +102,7 @@ export default function GlassNavbar() {
           RC
         </a>
 
-        {/* Zone 2: Clean Single-Line Navigation Links */}
+        {/* Zone 2: Navigation Links */}
         <nav
           aria-label="Primary Navigation"
           className="hidden md:flex items-center gap-7 text-sm font-medium"
@@ -126,8 +134,32 @@ export default function GlassNavbar() {
           })}
         </nav>
 
-        {/* Zone 3: Single Primary Action (Desktop) / Mobile Drawer Trigger */}
-        <div className="flex items-center shrink-0">
+        {/* Zone 3: Dark Mode Toggle + CTA */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {onToggleDarkMode && (
+            <button
+              type="button"
+              onClick={onToggleDarkMode}
+              aria-label={
+                isDarkMode
+                  ? 'Switch to Vivid Red Mode'
+                  : 'Switch to Eye-Comfort Dark Mode'
+              }
+              title={
+                isDarkMode
+                  ? 'Switch to Vivid Red Mode'
+                  : 'Eye-Comfort Dark Mode (Dim lighting for eyes)'
+              }
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/90 hover:text-white bg-white/10 hover:bg-white/20 transition-all border border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white shrink-0"
+            >
+              {isDarkMode ? (
+                <Sun className="h-4 w-4 text-amber-300" aria-hidden="true" />
+              ) : (
+                <Moon className="h-4 w-4 text-white/90" aria-hidden="true" />
+              )}
+            </button>
+          )}
+
           <a
             href="#contact"
             onClick={(e) => scrollToSection(e, 'contact')}
@@ -142,7 +174,7 @@ export default function GlassNavbar() {
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-glass-menu"
             aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            className="inline-flex md:hidden h-10 w-10 items-center justify-center rounded-full text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            className="inline-flex md:hidden h-9 w-9 items-center justify-center rounded-full text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -181,6 +213,34 @@ export default function GlassNavbar() {
                   </a>
                 );
               })}
+
+              {onToggleDarkMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onToggleDarkMode();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="mt-2 flex min-h-[44px] items-center justify-between rounded-2xl px-4 py-2.5 text-sm font-medium border border-white/20 bg-white/10 text-white"
+                >
+                  <span className="flex items-center gap-2">
+                    {isDarkMode ? (
+                      <>
+                        <Sun className="h-4 w-4 text-amber-300" />
+                        <span>Switch to Vivid Red Mode</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="h-4 w-4 text-white" />
+                        <span>Eye-Comfort Dark Mode</span>
+                      </>
+                    )}
+                  </span>
+                  <span className="text-xs font-mono text-white/70">
+                    {isDarkMode ? 'Dark ON' : 'Dark OFF'}
+                  </span>
+                </button>
+              )}
             </nav>
           </motion.div>
         )}

@@ -71,12 +71,26 @@ export interface AboutBlock {
   content: string;
 }
 
+export const OFFICIAL_EMAIL = 'rahu0xf@gmail.com';
+
 export interface SocialLinkItem {
   id: string;
   platform: string;
   handle: string;
   url: string;
+  category?: string;
+  badge?: string;
 }
+
+
+export const STORAGE_KEY_HERO = 'rayhan_portfolio_hero_v1';
+export const STORAGE_KEY_ABOUT_DESC = 'rayhan_portfolio_about_desc_v1';
+export const STORAGE_KEY_ABOUT_BLOCKS = 'rayhan_portfolio_about_blocks_v1';
+export const STORAGE_KEY_EXPERTISE = 'rayhan_portfolio_expertise_v1';
+export const STORAGE_KEY_PROJECTS = 'rayhan_portfolio_projects_v1';
+export const STORAGE_KEY_SOCIALS = 'rayhan_portfolio_socials_v1';
+export const STORAGE_KEY_AUTH = 'rayhan_portfolio_auth_credentials_v1';
+export const STORAGE_KEY_SESSION = 'rayhan_portfolio_admin_session_v1';
 
 export const HERO_CONTENT = {
   eyebrow: 'MULTIDISCIPLINARY TECHNOLOGY PORTFOLIO',
@@ -106,7 +120,7 @@ export const INITIAL_ABOUT_BLOCKS: AboutBlock[] = [
     label: '02 · Education & Training',
     title: 'Foundations & Structured Skill Building',
     content:
-      'Focused on computer technology fundamentals, Computer Operation Level 3 competencies, programming principles, and hands-on self-directed study across modern software and security labs. Use Customize Profile to add specific institutions or training.',
+      'Focused on computer technology fundamentals, Computer Operation Level 3 competencies, programming principles, and hands-on self-directed study across modern software, API security labs, and TryHackMe defensive & offensive pathways.',
   },
   {
     id: 'learning-goals',
@@ -224,6 +238,34 @@ export const INITIAL_EXPERTISE_DOMAINS: ExpertiseDomain[] = [
 
 export const INITIAL_PROJECTS: ProjectItem[] = [
   {
+    id: 'proj-al-falah',
+    title: 'Al-Falah Somobay Somiti (আল-ফালাহ সমবায় সমিতি)',
+    category: 'Web Development',
+    summary:
+      'A comprehensive cooperative society web platform and financial management system designed for member accounts, savings records, loan tracking, and real-time community transparency.',
+    caseStudyOverview:
+      'Al-Falah Somobay Somiti is a full-fledged cooperative management web application built to modernize community savings and credit operations. The platform offers intuitive member dashboards, transaction records, audit transparency, and responsive cross-device usability for both committee administrators and general members.',
+    caseStudyObjectives: [
+      'Provide modern digital record-keeping for cooperative savings, deposits, and loan repayments',
+      'Ensure high security, data integrity, and role-based operational transparency',
+      'Deliver ultra-fast performance and clean responsive UI deployed on Vercel',
+      'Empower members with real-time financial tracking and verifiable digital statements',
+    ],
+    technologies: [
+      'Next.js',
+      'React',
+      'TypeScript',
+      'Tailwind CSS',
+      'Financial Management',
+      'Vercel Deployment',
+    ],
+    liveUrl: 'https://al-falah-somobay-somiti.vercel.app/',
+    githubUrl: 'https://github.com/rahu0xf-glitch',
+    caseStudyUrl: 'https://al-falah-somobay-somiti.vercel.app/',
+    visualMotif: 'interface',
+    isConfigurableExample: false,
+  },
+  {
     id: 'proj-cyber-lab',
     title: 'Web & API Security Lab Sandbox',
     category: 'Cybersecurity',
@@ -329,25 +371,50 @@ export const INITIAL_SOCIAL_LINKS: SocialLinkItem[] = [
   {
     id: 'soc-github',
     platform: 'GitHub',
-    handle: 'Add GitHub profile URL',
-    url: '',
+    handle: 'github.com/rahu0xf-glitch',
+    url: 'https://github.com/rahu0xf-glitch',
+    category: 'Code & Repositories',
+    badge: 'Developer',
   },
   {
     id: 'soc-linkedin',
     platform: 'LinkedIn',
-    handle: 'Add LinkedIn profile URL',
-    url: '',
+    handle: 'linkedin.com/in/rahu0xf',
+    url: 'https://www.linkedin.com/in/rahu0xf/',
+    category: 'Professional Network',
+    badge: 'Connect',
+  },
+  {
+    id: 'soc-tryhackme',
+    platform: 'TryHackMe',
+    handle: 'tryhackme.com/p/rahu0xf',
+    url: 'https://tryhackme.com/p/rahu0xf',
+    category: 'Cybersecurity Labs',
+    badge: 'Security Profile',
+  },
+  {
+    id: 'soc-facebook',
+    platform: 'Facebook',
+    handle: 'facebook.com/Rahu0xf',
+    url: 'https://www.facebook.com/Rahu0xf',
+    category: 'Social Network',
+    badge: 'Official',
+  },
+  {
+    id: 'soc-instagram',
+    platform: 'Instagram',
+    handle: '@rahu0xf',
+    url: 'https://www.instagram.com/rahu0xf',
+    category: 'Media & Visuals',
+    badge: 'Follow',
   },
   {
     id: 'soc-email',
     platform: 'Email',
-    handle: 'Add direct email address',
-    url: '',
-  },
-  {
-    id: 'soc-youtube',
-    platform: 'Creative Media',
-    handle: 'Add portfolio or channel URL',
-    url: '',
+    handle: 'rahu0xf@gmail.com',
+    url: 'mailto:rahu0xf@gmail.com',
+    category: 'Direct Inbox',
+    badge: 'Primary Contact',
   },
 ];
+

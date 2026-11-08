@@ -8,6 +8,41 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // OWASP A05: Security Misconfiguration - Production Security Headers
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Prevent Clickjacking & UI Redress attacks
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          // Prevent MIME-sniffing
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          // Restrict Referrer leakage
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          // Restrict browser permissions
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()',
+          },
+          // Cross-Site Scripting (XSS) Protection header for legacy browsers
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+    ];
+  },
   // Allow access to remote image placeholder.
   images: {
     remotePatterns: [
@@ -15,7 +50,13 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
         port: '',
-        pathname: '/**', // This allows any path under the hostname
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'al-falah-somobay-somiti.vercel.app',
+        port: '',
+        pathname: '/**',
       },
     ],
   },

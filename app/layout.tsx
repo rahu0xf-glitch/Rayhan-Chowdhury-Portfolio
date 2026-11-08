@@ -86,6 +86,14 @@ export default function RootLayout({
     mainEntity: {
       '@type': 'Person',
       name: 'Rayhan Chowdhury',
+      email: 'rahu0xf@gmail.com',
+      sameAs: [
+        'https://github.com/rahu0xf-glitch',
+        'https://www.linkedin.com/in/rahu0xf/',
+        'https://www.facebook.com/Rahu0xf',
+        'https://tryhackme.com/p/rahu0xf',
+        'https://www.instagram.com/rahu0xf',
+      ],
       description:
         'Multidisciplinary technologist exploring Cybersecurity, Artificial Intelligence, Software Engineering, Data Science, and Digital Creativity.',
       image: `${appUrl}/assets/aistudio/IMG-20261027-WA0019_53031013.jpg`,

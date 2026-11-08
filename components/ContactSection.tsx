@@ -7,17 +7,28 @@ import {
   Copy,
   Check,
   ExternalLink,
-  Pencil,
   Mail,
   ArrowUp,
   Eye,
   EyeOff,
+  Sun,
+  Moon,
+  Github,
+  Linkedin,
+  Facebook,
+  Instagram,
+  Shield,
+  CheckCircle2,
 } from 'lucide-react';
 import GlassSurface from '@/components/GlassSurface';
+import {
+  OFFICIAL_EMAIL,
+  STORAGE_KEY_SOCIALS,
+  INITIAL_SOCIAL_LINKS,
+  SocialLinkItem,
+} from '@/data/portfolio-data';
 import { useLocalStorageState } from '@/hooks/use-local-storage';
-import { INITIAL_SOCIAL_LINKS, SocialLinkItem } from '@/data/portfolio-data';
-
-const STORAGE_KEY_SOCIALS = 'rayhan_portfolio_socials_v1';
+import { sanitizeInput, sanitizeUrl } from '@/lib/security';
 
 interface ContactFormValues {
   name: string;
@@ -36,13 +47,30 @@ interface ContactFormErrors {
 interface ContactSectionProps {
   portraitFocusMode: boolean;
   onTogglePortraitFocus: () => void;
+  isDarkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
+
+const SOCIAL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  GitHub: Github,
+  LinkedIn: Linkedin,
+  TryHackMe: Shield,
+  Facebook: Facebook,
+  Instagram: Instagram,
+  Email: Mail,
+};
 
 export default function ContactSection({
   portraitFocusMode,
   onTogglePortraitFocus,
+  isDarkMode = false,
+  onToggleDarkMode,
 }: ContactSectionProps) {
   const prefersReducedMotion = useReducedMotion();
+  const [socialLinks] = useLocalStorageState<SocialLinkItem[]>(
+    STORAGE_KEY_SOCIALS,
+    INITIAL_SOCIAL_LINKS
+  );
 
   const [values, setValues] = useState<ContactFormValues>({
     name: '',
@@ -54,25 +82,12 @@ export default function ContactSection({
   const [preparedDraft, setPreparedDraft] = useState<ContactFormValues | null>(
     null
   );
-  const [copied, setCopied] = useState<boolean>(false);
+  const [copiedDraft, setCopiedDraft] = useState<boolean>(false);
+  const [copiedEmail, setCopiedEmail] = useState<boolean>(false);
 
-  const [socialLinks, setSocialLinks] = useLocalStorageState<SocialLinkItem[]>(
-    STORAGE_KEY_SOCIALS,
-    INITIAL_SOCIAL_LINKS
-  );
-  const [editingSocials, setEditingSocials] = useState<boolean>(false);
-
-  const updateSocialItem = (
-    id: string,
-    field: 'handle' | 'url',
-    value: string
-  ) => {
-    setSocialLinks((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item
-      )
-    );
-  };
+  // Dynamic official email if configured in social links, fallback to constant
+  const emailItem = socialLinks.find((s) => s.id === 'soc-email');
+  const targetEmail = emailItem?.handle || OFFICIAL_EMAIL;
 
   const validate = (): ContactFormErrors => {
     const nextErrors: ContactFormErrors = {};
@@ -103,40 +118,54 @@ export default function ContactSection({
       return;
     }
 
-    setPreparedDraft({
-      name: values.name.trim(),
-      email: values.email.trim(),
-      subject: values.subject.trim(),
-      message: values.message.trim(),
-    });
-    setCopied(false);
+    const draft = {
+      name: sanitizeInput(values.name, 100),
+      // Remove CRLF line breaks from email and subject to prevent mail header injection (OWASP A03)
+      email: values.email.trim().replace(/[\r\n]/g, '').slice(0, 100),
+      subject: values.subject.trim().replace(/[\r\n]/g, '').slice(0, 150),
+      message: sanitizeInput(values.message, 3000),
+    };
+    setPreparedDraft(draft);
+    setCopiedDraft(false);
+
+    // Open mail client addressed directly to official email
+    const mailtoUrl = `mailto:${encodeURIComponent(targetEmail)}?subject=${encodeURIComponent(
+      draft.subject
+    )}&body=${encodeURIComponent(
+      `Hello Rayhan,\n\n${draft.message}\n\n---\nFrom: ${draft.name}\nEmail: ${draft.email}`
+    )}`;
+    window.location.href = mailtoUrl;
+  };
+
+  const handleCopyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(targetEmail);
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2500);
+    } catch {
+      // Ignore if clipboard unavailable
+    }
   };
 
   const handleCopyDraft = async () => {
     if (!preparedDraft) return;
-    const formatted = `Subject: ${preparedDraft.subject}\nFrom: ${preparedDraft.name} <${preparedDraft.email}>\n\n${preparedDraft.message}`;
+    const formatted = `To: ${targetEmail}\nSubject: ${preparedDraft.subject}\nFrom: ${preparedDraft.name} <${preparedDraft.email}>\n\n${preparedDraft.message}`;
     try {
       await navigator.clipboard.writeText(formatted);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      setCopiedDraft(true);
+      setTimeout(() => setCopiedDraft(false), 2500);
     } catch {
-      // Fallback ignored if clipboard blocked
+      // Fallback
     }
   };
 
-  // Resolve configured email if user set one in SocialLinks
-  const configuredEmailItem = socialLinks.find((s) => s.id === 'soc-email');
-  const rawEmailTarget = configuredEmailItem?.url
-    ? configuredEmailItem.url.replace(/^mailto:/i, '').trim()
-    : '';
-
   const mailtoHref = preparedDraft
-    ? `mailto:${encodeURIComponent(rawEmailTarget)}?subject=${encodeURIComponent(
+    ? `mailto:${targetEmail}?subject=${encodeURIComponent(
         preparedDraft.subject
       )}&body=${encodeURIComponent(
-        `Name: ${preparedDraft.name}\nEmail: ${preparedDraft.email}\n\n${preparedDraft.message}`
+        `Hello Rayhan,\n\n${preparedDraft.message}\n\n---\nFrom: ${preparedDraft.name}\nEmail: ${preparedDraft.email}`
       )}`
-    : '#contact';
+    : `mailto:${targetEmail}`;
 
   return (
     <section
@@ -146,132 +175,139 @@ export default function ContactSection({
     >
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-          {/* Left Column: Direct Channels & Configurable Socials */}
+          {/* Left Column: Direct Channels & Verified Permanent Profiles */}
           <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="lg:col-span-5"
           >
             <GlassSurface variant="readable" className="p-6 sm:p-8">
-              <p className="font-mono text-xs tracking-wider text-white/70 mb-2">
-                04 · Connect &amp; Collaborate
-              </p>
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-950/40 px-3 py-1 mb-3 text-emerald-300 font-mono text-[11px]">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                </span>
+                <span>04 · Official Channels</span>
+              </div>
+
               <h2
                 id="contact-heading"
                 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white"
                 style={{ textWrap: 'balance' }}
               >
-                Let&apos;s Start a Conversation.
+                Let&apos;s Connect Directly.
               </h2>
               <p className="mt-3 text-sm sm:text-base text-white/80 leading-relaxed">
-                Interested in collaborating on software engineering, security
-                research, data initiatives, or creative media? Reach out using
-                the form or connect through direct channels below.
+                Whether you want to discuss Cybersecurity, TryHackMe labs, AI
+                automation, MERN stack software, or creative projects, connect
+                through the official direct email and verified profiles below.
               </p>
 
-              {/* Configurable Social Links */}
+              {/* Primary Direct Email Spotlight Card */}
+              <div className="mt-6 rounded-2xl border border-white/25 bg-gradient-to-br from-white/[0.12] to-black/40 p-4 sm:p-5 shadow-lg">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white border border-white/30">
+                      <Mail className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-white/70">
+                        Primary Official Mailbox
+                      </p>
+                      <p className="font-display text-base sm:text-lg font-bold text-white truncate">
+                        {targetEmail}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-1 text-[11px] font-mono font-medium text-emerald-200 border border-emerald-500/30 shrink-0">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>Real &amp; Verified</span>
+                  </span>
+                </div>
+
+                <div className="mt-4 pt-3.5 border-t border-white/15 flex flex-wrap items-center gap-2.5">
+                  <a
+                    href={`mailto:${targetEmail}`}
+                    className="liquid-btn-primary inline-flex min-h-[38px] items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0"
+                  >
+                    <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Send Email Now</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyEmail}
+                    className="liquid-btn-secondary inline-flex min-h-[38px] items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium text-white whitespace-nowrap shrink-0"
+                  >
+                    {copiedEmail ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-300" aria-hidden="true" />
+                        <span className="text-emerald-200">Email Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span>Copy Address</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Verified Permanent Social Channels List (Pure Clickable, Controlled via Admin) */}
               <div className="mt-7 pt-5 border-t border-white/15">
                 <div className="flex items-center justify-between gap-2 mb-4">
                   <span className="font-display text-sm font-semibold text-white">
-                    Social &amp; Direct Profiles
+                    Verified Social &amp; Lab Profiles
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setEditingSocials((prev) => !prev)}
-                    className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-white/80 hover:bg-white/12 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  >
-                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>{editingSocials ? 'Done' : 'Configure Links'}</span>
-                  </button>
+                  <span className="text-[11px] font-mono text-white/60">
+                    {socialLinks.length} Channels
+                  </span>
                 </div>
 
-                <div className="space-y-3">
-                  {socialLinks.map((soc) => {
-                    const isEmail = soc.id === 'soc-email';
-                    const resolvedHref = soc.url
-                      ? isEmail && !soc.url.startsWith('mailto:')
-                        ? `mailto:${soc.url}`
-                        : soc.url
-                      : '';
+                <div className="space-y-2.5">
+                  {socialLinks.map((item) => {
+                    const IconComponent = SOCIAL_ICONS[item.platform] || ExternalLink;
+                    const isEmail = item.id === 'soc-email';
 
                     return (
-                      <div
-                        key={soc.id}
-                        className="rounded-2xl border border-white/14 bg-white/[0.05] px-4 py-3"
+                      <a
+                        key={item.id}
+                        href={sanitizeUrl(item.url)}
+                        target={isEmail ? undefined : '_blank'}
+                        rel={isEmail ? undefined : 'noopener noreferrer'}
+                        className="group block rounded-2xl border border-white/15 bg-white/[0.05] hover:bg-white/[0.12] hover:border-white/40 p-3.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                       >
-                        {editingSocials ? (
-                          <div className="space-y-2">
-                            <p className="font-mono text-xs text-white/75">
-                              {soc.platform}
-                            </p>
-                            <input
-                              type="text"
-                              value={soc.handle}
-                              onChange={(e) =>
-                                updateSocialItem(
-                                  soc.id,
-                                  'handle',
-                                  e.target.value
-                                )
-                              }
-                              aria-label={`${soc.platform} display label`}
-                              placeholder="Display handle or label"
-                              className="glass-input w-full rounded-lg px-3 py-1.5 text-xs text-white"
-                            />
-                            <input
-                              type="text"
-                              value={soc.url}
-                              onChange={(e) =>
-                                updateSocialItem(soc.id, 'url', e.target.value)
-                              }
-                              aria-label={`${soc.platform} URL or email`}
-                              placeholder={
-                                isEmail
-                                  ? 'name@example.com'
-                                  : 'https://...'
-                              }
-                              className="glass-input w-full rounded-lg px-3 py-1.5 text-xs text-white"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 group-hover:bg-white/20 text-white transition-colors">
+                              <IconComponent className="h-4 w-4 transition-transform group-hover:scale-110" />
+                            </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-mono text-white/65">
-                                {soc.platform}
-                              </p>
-                              <p className="text-sm font-medium text-white truncate">
-                                {soc.handle}
+                              <div className="flex items-center gap-2">
+                                <p className="font-display text-sm font-semibold text-white">
+                                  {item.platform}
+                                </p>
+                                {item.badge && (
+                                  <span className="font-mono text-[10px] text-white/60">
+                                    · {item.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs font-mono text-white/75 truncate mt-0.5">
+                                {item.handle}
                               </p>
                             </div>
-                            {resolvedHref ? (
-                              <a
-                                href={resolvedHref}
-                                target={isEmail ? undefined : '_blank'}
-                                rel={
-                                  isEmail ? undefined : 'noopener noreferrer'
-                                }
-                                aria-label={`Open ${soc.platform}`}
-                                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                              >
-                                <ExternalLink
-                                  className="h-4 w-4"
-                                  aria-hidden="true"
-                                />
-                              </a>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setEditingSocials(true)}
-                                className="text-xs font-mono text-white/65 hover:text-white underline underline-offset-4 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-sm"
-                              >
-                                Set URL
-                              </button>
-                            )}
                           </div>
-                        )}
-                      </div>
+
+                          <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 group-hover:bg-white text-white group-hover:text-black transition-all">
+                            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                          </div>
+                        </div>
+                      </a>
                     );
                   })}
                 </div>
@@ -279,15 +315,30 @@ export default function ContactSection({
             </GlassSurface>
           </motion.div>
 
-          {/* Right Column: Validated Glass Contact Form */}
+          {/* Right Column: Direct Contact Form */}
           <motion.div
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.45, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+            transition={{
+              duration: 0.45,
+              delay: 0.08,
+              ease: [0.16, 1, 0.3, 1],
+            }}
             className="lg:col-span-7"
           >
             <GlassSurface variant="readable" className="p-6 sm:p-8">
+              <div className="mb-5 pb-4 border-b border-white/15">
+                <h3 className="font-display text-xl sm:text-2xl font-bold text-white">
+                  Write Directly to Rayhan
+                </h3>
+                <p className="mt-1 text-xs sm:text-sm text-white/75 leading-relaxed">
+                  Submitting this form dispatches your message directly to{' '}
+                  <strong className="text-white font-mono">{targetEmail}</strong>{' '}
+                  using your default email client or clipboard.
+                </p>
+              </div>
+
               <form onSubmit={handleSubmit} noValidate className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
@@ -295,7 +346,7 @@ export default function ContactSection({
                       htmlFor="contact-name"
                       className="block text-xs font-semibold tracking-wide text-white/90 mb-2"
                     >
-                      Name
+                      Your Name *
                     </label>
                     <input
                       id="contact-name"
@@ -312,7 +363,7 @@ export default function ContactSection({
                         if (errors.name)
                           setErrors((er) => ({ ...er, name: undefined }));
                       }}
-                      placeholder="Your full name"
+                      placeholder="e.g. Alex Rahman"
                       className="glass-input min-h-[46px] w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/40"
                     />
                     {errors.name && (
@@ -331,7 +382,7 @@ export default function ContactSection({
                       htmlFor="contact-email"
                       className="block text-xs font-semibold tracking-wide text-white/90 mb-2"
                     >
-                      Email
+                      Your Email *
                     </label>
                     <input
                       id="contact-email"
@@ -368,7 +419,7 @@ export default function ContactSection({
                     htmlFor="contact-subject"
                     className="block text-xs font-semibold tracking-wide text-white/90 mb-2"
                   >
-                    Subject
+                    Subject *
                   </label>
                   <input
                     id="contact-subject"
@@ -384,7 +435,7 @@ export default function ContactSection({
                       if (errors.subject)
                         setErrors((er) => ({ ...er, subject: undefined }));
                     }}
-                    placeholder="Project collaboration, inquiry, or opportunity"
+                    placeholder="Cybersecurity collaboration, software project, or inquiry"
                     className="glass-input min-h-[46px] w-full rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/40"
                   />
                   {errors.subject && (
@@ -403,7 +454,7 @@ export default function ContactSection({
                     htmlFor="contact-message"
                     className="block text-xs font-semibold tracking-wide text-white/90 mb-2"
                   >
-                    Message
+                    Message *
                   </label>
                   <textarea
                     id="contact-message"
@@ -434,9 +485,11 @@ export default function ContactSection({
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-                  <p className="text-xs text-white/65">
-                    Prepares a verified message draft for your mail client or
-                    clipboard—no unconfigured silent server drops.
+                  <p className="text-xs text-white/70">
+                    Recipient target:{' '}
+                    <span className="font-mono text-white underline">
+                      {targetEmail}
+                    </span>
                   </p>
 
                   <button
@@ -444,25 +497,26 @@ export default function ContactSection({
                     className="liquid-btn-primary inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     <Send className="h-4 w-4" aria-hidden="true" />
-                    <span>Send Message</span>
+                    <span>Send Message to Rayhan</span>
                   </button>
                 </div>
               </form>
 
-              {/* Honest Delivery Action Panel */}
+              {/* Delivery Action Panel */}
               {preparedDraft && (
                 <div
                   role="region"
                   aria-live="polite"
                   className="mt-6 rounded-2xl border border-white/25 bg-white/[0.08] p-4 sm:p-5"
                 >
-                  <p className="text-sm font-semibold text-white">
-                    Message Draft Ready to Dispatch
-                  </p>
+                  <div className="flex items-center gap-2 text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <p className="text-sm font-semibold text-white">
+                      Draft Prepared for {targetEmail}
+                    </p>
+                  </div>
                   <p className="mt-1 text-xs leading-relaxed text-white/80">
-                    Because a backend email relay is not yet connected, this
-                    form does not falsely claim automatic delivery. Choose how
-                    you would like to send your prepared message:
+                    If your email app did not open automatically, click below to launch it or copy the full formatted text:
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -471,7 +525,7 @@ export default function ContactSection({
                       className="liquid-btn-primary inline-flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap shrink-0"
                     >
                       <Mail className="h-3.5 w-3.5" aria-hidden="true" />
-                      <span>Open in Email App</span>
+                      <span>Open in Mail App</span>
                     </a>
 
                     <button
@@ -479,15 +533,15 @@ export default function ContactSection({
                       onClick={handleCopyDraft}
                       className="liquid-btn-secondary inline-flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold text-white whitespace-nowrap shrink-0"
                     >
-                      {copied ? (
+                      {copiedDraft ? (
                         <>
-                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                          <span>Copied to Clipboard</span>
+                          <Check className="h-3.5 w-3.5 text-emerald-300" aria-hidden="true" />
+                          <span>Copied Formatted Message!</span>
                         </>
                       ) : (
                         <>
                           <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                          <span>Copy Formatted Message</span>
+                          <span>Copy Message Text</span>
                         </>
                       )}
                     </button>
@@ -502,11 +556,42 @@ export default function ContactSection({
         <footer className="mt-16 sm:mt-24">
           <div className="liquid-glass-readable rounded-full px-5 py-3.5 sm:px-7 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/75">
             <p className="text-center sm:text-left">
-              &copy; {new Date().getFullYear()} Rayhan Chowdhury · Technology
-              Beyond Boundaries.
+              &copy; {new Date().getFullYear()} Rayhan Chowdhury · Contact:{' '}
+              <a
+                href={`mailto:${targetEmail}`}
+                className="text-white underline underline-offset-2 hover:text-white font-mono"
+              >
+                {targetEmail}
+              </a>
             </p>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              {onToggleDarkMode && (
+                <>
+                  <button
+                    type="button"
+                    onClick={onToggleDarkMode}
+                    className="inline-flex items-center gap-1.5 text-white/80 hover:text-white transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-sm"
+                  >
+                    {isDarkMode ? (
+                      <>
+                        <Sun className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
+                        <span>Vivid Red Mode</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="h-3.5 w-3.5 text-white/90" aria-hidden="true" />
+                        <span>Eye-Comfort Dark Mode</span>
+                      </>
+                    )}
+                  </button>
+
+                  <span aria-hidden="true" className="text-white/30">
+                    ·
+                  </span>
+                </>
+              )}
+
               <button
                 type="button"
                 onClick={onTogglePortraitFocus}
@@ -520,7 +605,7 @@ export default function ContactSection({
                 ) : (
                   <>
                     <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>Preview Pure Portrait</span>
+                    <span>HD 4K Pure Portrait View</span>
                   </>
                 )}
               </button>
